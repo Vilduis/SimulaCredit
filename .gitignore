@@ -1,0 +1,18 @@
+# Ignorar variables de entorno
+.env
+.env.*
+
+# Ignorar esquema de Supabase
+supabase-schema.sql
+
+# Ignorar documentos internos
+ANALISIS_PROYECTO.md
+GUIA_CONFIGURACION_COMPLETA.md
+IMPLEMENTACION_COMPLETA.md
+
+# Dependencias (no se deben commitear)
+node_modules/
+
+# Artefactos de build (Netlify los genera en el servidor)
+build/
+dist/
