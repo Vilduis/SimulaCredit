@@ -1,19 +1,19 @@
-import React, { useState } from 'react';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Building2, AlertCircle } from 'lucide-react';
-import { authService } from '../services/authService';
-import { Alert, AlertDescription } from './ui/alert';
+import React, { useState } from "react";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Building2, AlertCircle } from "lucide-react";
+import { authService } from "../services/authService";
+import { Alert, AlertDescription } from "./ui/alert";
 
 interface LoginScreenProps {
   onLogin: () => void;
 }
 
 export function LoginScreen({ onLogin }: LoginScreenProps) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,7 +26,9 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
       await authService.signIn(email, password);
       onLogin();
     } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión. Verifica tus credenciales.');
+      setError(
+        err.message || "Error al iniciar sesión. Verifica tus credenciales."
+      );
     } finally {
       setLoading(false);
     }
@@ -44,9 +46,11 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
             <br />
             Créditos Hipotecarios
           </CardTitle>
-          <p className="text-gray-600">Ingresa tus credenciales para continuar</p>
+          <p className="text-gray-600">
+            Ingresa tus credenciales para continuar
+          </p>
         </CardHeader>
-        
+
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
@@ -55,7 +59,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -68,7 +72,7 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 disabled={loading}
               />
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="password">Contraseña</Label>
               <Input
@@ -81,15 +85,15 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
                 disabled={loading}
               />
             </div>
-            
-            <Button 
-              type="submit" 
+
+            <Button
+              type="submit"
               className="w-full bg-blue-600 hover:bg-blue-700"
               disabled={loading}
             >
-              {loading ? 'Iniciando sesión...' : 'Ingresar'}
+              {loading ? "Iniciando sesión..." : "Ingresar"}
             </Button>
-            
+
             <div className="text-center">
               <a href="#" className="text-sm text-blue-600 hover:underline">
                 ¿Olvidaste tu contraseña?

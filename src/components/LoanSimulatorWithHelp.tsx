@@ -390,8 +390,11 @@ export function LoanSimulatorWithHelp({ property, onNavigate, onLogout, onSimula
                   <Input
                     type="number"
                     step="0.1"
-                    value={config.interestRate}
-                    onChange={(e) => handleConfigChange('interestRate', parseFloat(e.target.value) || 0)}
+                    value={config.interestRate === 0 ? '' : config.interestRate}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      handleConfigChange('interestRate', v === '' ? 0 : (parseFloat(v) || 0));
+                    }}
                     placeholder="8.5"
                     min="1"
                     max="30"
@@ -467,8 +470,11 @@ export function LoanSimulatorWithHelp({ property, onNavigate, onLogout, onSimula
                 <Input
                   type="number"
                   step="0.1"
-                  value={config.discountRateAnnual}
-                  onChange={(e) => handleConfigChange('discountRateAnnual', parseFloat(e.target.value) || 0)}
+                  value={config.discountRateAnnual === 0 ? '' : config.discountRateAnnual}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    handleConfigChange('discountRateAnnual', v === '' ? 0 : (parseFloat(v) || 0));
+                  }}
                   placeholder="10"
                   min="0"
                   max="100"

@@ -64,8 +64,10 @@ export function SimpleReports({ onNavigate, onLogout }: ReportsProps) {
     }).format(amount);
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("es-PE");
+  const formatDate = (value: string | Date) => {
+    if (!value) return "-";
+    const date = typeof value === "string" ? new Date(value) : value;
+    return date.toLocaleDateString("es-PE", { timeZone: "America/Lima" });
   };
 
   const getStatusBadge = (status: string) => {
@@ -136,9 +138,7 @@ export function SimpleReports({ onNavigate, onLogout }: ReportsProps) {
       client: client?.name || "Cliente no especificado",
       property: property?.name || "Propiedad no especificada",
       amount: sim.loan_amount || 0,
-      date: sim.created_at
-        ? new Date(sim.created_at).toISOString().split("T")[0]
-        : "",
+      date: sim.created_at ?? "",
       status: "completed",
     };
   });
@@ -457,9 +457,7 @@ export function SimpleReports({ onNavigate, onLogout }: ReportsProps) {
                             <TableCell>{sim.client}</TableCell>
                             <TableCell>{sim.property}</TableCell>
                             <TableCell>{formatCurrency(sim.amount)}</TableCell>
-                            <TableCell>
-                              {sim.date ? formatDate(sim.date) : "-"}
-                            </TableCell>
+                            <TableCell>{formatDate(sim.date)}</TableCell>
                             <TableCell>{getStatusBadge(sim.status)}</TableCell>
                             <TableCell>
                               <Button variant="ghost" size="sm" onClick={() => openViewSimulation(sim.id)}>
@@ -531,8 +529,10 @@ export function SimpleReports({ onNavigate, onLogout }: ReportsProps) {
                             </TableCell>
                             <TableCell className="text-center">
                               <Badge
-                                variant={
-                                  client.simulations > 0 ? "default" : "secondary"
+                                className={
+                                  client.simulations > 0
+                                    ? "bg-green-600 hover:bg-green-700 text-white"
+                                    : "bg-gray-200 text-gray-700"
                                 }
                               >
                                 {client.simulations > 0 ? "Activo" : "Prospecto"}

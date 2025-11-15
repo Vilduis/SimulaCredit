@@ -12,7 +12,7 @@ import {
 } from "./ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Screen, Client } from "../App";
-import { Save, X, RotateCcw } from "lucide-react";
+import { Save, X, RotateCcw, List } from "lucide-react";
 import { FormField } from "./help/FormField";
 import { SuccessAlert } from "./help/SuccessAlert";
 import { clientService } from "../services/clientService";
@@ -314,9 +314,10 @@ export function ClientRegistrationWithHelp({
             </p>
           </div>
           <Button
-            variant="outline"
             onClick={() => onNavigate("clients-list")}
+            className="bg-green-600 hover:bg-green-700"
           >
+            <List className="w-4 h-4 mr-2" />
             Ver Lista
           </Button>
         </div>

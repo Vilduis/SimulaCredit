@@ -14,6 +14,15 @@ import { Screen, Client } from "../App";
 import { Plus, Edit, Trash2, Loader2, Users, Calculator } from "lucide-react";
 import { clientService } from "../services/clientService";
 import { Alert, AlertDescription } from "./ui/alert";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "./ui/alert-dialog";
 import { Badge } from "./ui/badge";
 
 interface ClientsListProps {
@@ -26,6 +35,8 @@ export function ClientsList({ onNavigate, onLogout }: ClientsListProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
 
   useEffect(() => {
     loadClients();
@@ -50,19 +61,24 @@ export function ClientsList({ onNavigate, onLogout }: ClientsListProps) {
     onNavigate("client-edit");
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("¿Estás seguro de eliminar este cliente?")) {
-      return;
-    }
+  const openDeleteDialog = (client: Client) => {
+    setClientToDelete(client);
+    setDeleteDialogOpen(true);
+  };
 
+  const confirmDelete = async () => {
+    if (!clientToDelete) return;
     try {
-      setDeletingId(id);
-      await clientService.delete(id);
+      setDeletingId(clientToDelete.id);
+      setError(null);
+      await clientService.delete(clientToDelete.id);
       await loadClients();
     } catch (err: any) {
       setError(err.message || "Error al eliminar el cliente");
     } finally {
       setDeletingId(null);
+      setDeleteDialogOpen(false);
+      setClientToDelete(null);
     }
   };
 
@@ -72,7 +88,8 @@ export function ClientsList({ onNavigate, onLogout }: ClientsListProps) {
     } catch (e) {
       // ignorar
     }
-    onNavigate("simulator");
+    // Llevar al usuario al catálogo de proyectos para seleccionar
+    onNavigate("projects");
   };
 
   const formatCurrency = (amount: number) => {
@@ -101,7 +118,7 @@ export function ClientsList({ onNavigate, onLogout }: ClientsListProps) {
             </p>
           </div>
           <div className="flex space-x-3">
-            <Button variant="outline" onClick={() => onNavigate("clients")}>
+            <Button onClick={() => onNavigate("clients")} className="bg-green-600 hover:bg-green-700">
               <Plus className="w-4 h-4 mr-2" />
               Nuevo Cliente
             </Button>
@@ -188,7 +205,7 @@ export function ClientsList({ onNavigate, onLogout }: ClientsListProps) {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleDelete(client.id)}
+                              onClick={() => openDeleteDialog(client)}
                               disabled={deletingId === client.id}
                               className="text-red-600 hover:text-red-700 hover:bg-red-50"
                             >
@@ -209,6 +226,34 @@ export function ClientsList({ onNavigate, onLogout }: ClientsListProps) {
           </Card>
         )}
       </div>
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>¿Eliminar cliente?</AlertDialogTitle>
+        </AlertDialogHeader>
+        <p className="text-sm text-gray-600">
+          Esta acción no se puede deshacer. Se eliminará el cliente
+          {clientToDelete ? ` "${clientToDelete.name}"` : ""} del sistema.
+        </p>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={deletingId !== null}>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={confirmDelete}
+            className="bg-green-600 hover:bg-green-700"
+            disabled={deletingId !== null}
+          >
+            {deletingId ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Eliminando...
+              </>
+            ) : (
+              "Eliminar"
+            )}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

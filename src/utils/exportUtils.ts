@@ -97,6 +97,12 @@ export async function exportReportsToExcel(opts: {
     ]),
   ];
   const wsTop = XLSX.utils.aoa_to_sheet(topClientsAOA);
+  // Ajustar anchos y formato de moneda en la columna Monto Total
+  (wsTop as any)['!cols'] = [{ wch: 20 }, { wch: 14 }, { wch: 12 }, { wch: 18 }, { wch: 12 }];
+  for (let r = 2; r <= topClientsAOA.length; r++) {
+    const addr = `D${r}`; // Columna Monto Total
+    if ((wsTop as any)[addr]) (wsTop as any)[addr].z = '"S/ "#,##0.00';
+  }
   XLSX.utils.book_append_sheet(wb, wsTop, 'TopClientes');
 
   // Recent Simulations sheet
@@ -111,6 +117,12 @@ export async function exportReportsToExcel(opts: {
     ]),
   ];
   const wsRecent = XLSX.utils.aoa_to_sheet(recentAOA);
+  // Ajustar anchos y formato de moneda en la columna Monto
+  (wsRecent as any)['!cols'] = [{ wch: 20 }, { wch: 24 }, { wch: 16 }, { wch: 16 }, { wch: 12 }];
+  for (let r = 2; r <= recentAOA.length; r++) {
+    const addr = `C${r}`; // Columna Monto
+    if ((wsRecent as any)[addr]) (wsRecent as any)[addr].z = '"S/ "#,##0.00';
+  }
   XLSX.utils.book_append_sheet(wb, wsRecent, 'Simulaciones');
 
   // Metadata sheet (optional)
@@ -165,8 +177,8 @@ export async function exportSimulationToPDF(opts: {
     head: [['Indicador', 'Valor']],
     body: [
       ['Cuota Mensual', formatCurrencyPEN(result.monthlyPayment)],
-      ['TCEA', `${(result.tcea * 100).toFixed(2)}%`],
-      ['TREA', `${(result.trea * 100).toFixed(2)}%`],
+      ['TCEA', `${(result.tcea).toFixed(2)}%`],
+      ['TREA', `${(result.trea).toFixed(2)}%`],
       ['Monto Total', formatCurrencyPEN(result.totalAmount)],
       ['Interés Total', formatCurrencyPEN(result.totalInterest)],
     ],
@@ -222,15 +234,26 @@ export async function exportSimulationToExcel(opts: {
     ['Cliente', clientName || 'Sin asignar'],
     ['Propiedad', propertyName || 'No especificada'],
     ['Monto', config.loanAmount],
-    ['TEA', config.interestRate],
+    ['TEA', config.interestRate / 100],
     ['Plazo (años)', config.termYears],
     ['Cuota Mensual', result.monthlyPayment],
-    ['TCEA', result.tcea],
-    ['TREA', result.trea],
+    ['TCEA', result.tcea / 100],
+    ['TREA', result.trea / 100],
     ['Monto Total', result.totalAmount],
     ['Interés Total', result.totalInterest],
   ];
   const wsSummary = XLSX.utils.aoa_to_sheet(summary);
+  // Aplicar formato de porcentaje a TEA/TCEA/TREA
+  if (wsSummary['B4']) wsSummary['B4'].z = '0.00%';
+  if (wsSummary['B7']) wsSummary['B7'].z = '0.00%';
+  if (wsSummary['B8']) wsSummary['B8'].z = '0.00%';
+  // Formato de moneda para Monto, Cuota Mensual, Monto Total e Interés Total
+  if ((wsSummary as any)['B3']) (wsSummary as any)['B3'].z = '"S/ "#,##0.00';
+  if ((wsSummary as any)['B6']) (wsSummary as any)['B6'].z = '"S/ "#,##0.00';
+  if ((wsSummary as any)['B9']) (wsSummary as any)['B9'].z = '"S/ "#,##0.00';
+  if ((wsSummary as any)['B10']) (wsSummary as any)['B10'].z = '"S/ "#,##0.00';
+  // Ajustar anchos de columnas del resumen
+  (wsSummary as any)['!cols'] = [{ wch: 18 }, { wch: 20 }];
   XLSX.utils.book_append_sheet(wb, wsSummary, 'Resumen');
 
   // Amortization sheet
@@ -247,6 +270,22 @@ export async function exportSimulationToExcel(opts: {
     ]),
   ];
   const wsAmort = XLSX.utils.aoa_to_sheet(amortAOA);
+  // Ajustar anchos de columnas y formato de moneda para columnas C-G
+  (wsAmort as any)['!cols'] = [
+    { wch: 10 },
+    { wch: 12 },
+    { wch: 16 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 16 },
+    { wch: 16 },
+  ];
+  for (let r = 2; r <= result.amortizationTable.length + 1; r++) {
+    ['C', 'D', 'E', 'F', 'G'].forEach((col) => {
+      const addr = `${col}${r}`;
+      if ((wsAmort as any)[addr]) (wsAmort as any)[addr].z = '"S/ "#,##0.00';
+    });
+  }
   XLSX.utils.book_append_sheet(wb, wsAmort, 'Amortizacion');
 
   XLSX.writeFile(wb, `simulacion_${Date.now()}.xlsx`);

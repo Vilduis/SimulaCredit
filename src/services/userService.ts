@@ -144,15 +144,15 @@ export const userService = {
     if (authError) throw authError;
     if (!authData.user) throw new Error('Error al crear usuario');
 
-    // Crear perfil en la tabla users
+    // Crear/actualizar perfil en la tabla users de forma idempotente
     const { data: profileData, error: profileError } = await supabase
       .from('users')
-      .insert({
+      .upsert({
         id: authData.user.id,
         email: userData.email,
         full_name: userData.full_name || null,
         role: userData.role || 'user'
-      })
+      }, { onConflict: 'id' })
       .select()
       .single();
 

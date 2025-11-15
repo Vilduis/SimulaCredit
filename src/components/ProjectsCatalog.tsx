@@ -132,7 +132,7 @@ export function ProjectsCatalog({
           {isAdmin && (
             <Button
               onClick={() => onNavigate("property-form" as Screen)}
-              className="flex items-center space-x-2"
+              className="bg-blue-600 text-white flex items-center space-x-2"
             >
               <Plus className="w-4 h-4" />
               <span>Nueva Propiedad</span>
@@ -289,7 +289,7 @@ export function ProjectsCatalog({
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleConfirmDelete}
-                className="bg-red-600 hover:bg-red-700"
+                className="bg-blue-600 hover:bg-blue-700"
               >
                 Eliminar
               </AlertDialogAction>

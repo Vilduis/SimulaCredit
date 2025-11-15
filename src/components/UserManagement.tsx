@@ -55,6 +55,8 @@ export function UserManagement({ onNavigate, onLogout }: UserManagementProps) {
   const [success, setSuccess] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [formData, setFormData] = useState<CreateUserData>({
     email: "",
@@ -104,14 +106,17 @@ export function UserManagement({ onNavigate, onLogout }: UserManagementProps) {
     setIsDialogOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("¿Estás seguro de eliminar este usuario/empleado?")) {
-      return;
-    }
+  const openDeleteDialog = (user: User) => {
+    setUserToDelete(user);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!userToDelete) return;
     try {
-      setDeletingId(id);
+      setDeletingId(userToDelete.id);
       setError(null);
-      await userService.delete(id);
+      await userService.delete(userToDelete.id);
       await loadUsers();
       setSuccess("Usuario eliminado correctamente");
       setTimeout(() => setSuccess(null), 3000);
@@ -119,6 +124,8 @@ export function UserManagement({ onNavigate, onLogout }: UserManagementProps) {
       setError(err.message || "Error al eliminar usuario");
     } finally {
       setDeletingId(null);
+      setIsDeleteDialogOpen(false);
+      setUserToDelete(null);
     }
   };
 
@@ -298,7 +305,7 @@ export function UserManagement({ onNavigate, onLogout }: UserManagementProps) {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => handleDelete(user.id)}
+                              onClick={() => openDeleteDialog(user)}
                               disabled={deletingId === user.id}
                               className="text-red-600 hover:text-red-700"
                             >
@@ -439,6 +446,52 @@ export function UserManagement({ onNavigate, onLogout }: UserManagementProps) {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog de confirmación de eliminación */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="max-w-sm" style={{ maxWidth: 420, padding: 16 }}>
+          <DialogHeader>
+            <DialogTitle>Confirmar eliminación</DialogTitle>
+            <DialogDescription>
+              {userToDelete ? (
+                <span>
+                  ¿Seguro que deseas eliminar al usuario
+                  {" "}
+                  <strong>{userToDelete.full_name || userToDelete.email}</strong>?
+                  Esta acción no se puede deshacer.
+                </span>
+              ) : (
+                "¿Seguro que deseas eliminar este usuario?"
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsDeleteDialogOpen(false)}
+              disabled={deletingId !== null}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              className="bg-blue-600 hover:bg-blue-700"
+              onClick={confirmDelete}
+              disabled={deletingId !== null}
+            >
+              {deletingId ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Eliminando...
+                </>
+              ) : (
+                "Eliminar"
+              )}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
