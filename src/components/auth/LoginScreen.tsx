@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Building2, AlertCircle } from "lucide-react";
-import { authService } from "../services/authService";
-import { Alert, AlertDescription } from "./ui/alert";
+import { authService } from "../../services/authService";
+import { Alert, AlertDescription } from "../ui/alert";
 
 interface LoginScreenProps {
   onLogin: () => void;

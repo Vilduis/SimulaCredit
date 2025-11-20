@@ -50,8 +50,23 @@ export function calculateMonthlyPayment(loanAmount: number, monthlyRate: number,
 }
 
 /**
+ * Calcula fecha sumando meses de 30 días (método francés vencido ordinario)
+ * @param date - Fecha base
+ * @param months - Número de meses a sumar (cada mes = 30 días)
+ * @returns Nueva fecha con meses de 30 días sumados
+ */
+function addMonths30Days(date: Date, months: number): Date {
+    const newDate = new Date(date);
+    // Calcular días totales: meses × 30 días (método francés vencido ordinario)
+    const totalDays = months * 30;
+    newDate.setDate(newDate.getDate() + totalDays);
+    return newDate;
+}
+
+/**
  * Genera tabla de amortización completa con Método Francés
  * Incluye soporte para períodos de gracia
+ * IMPORTANTE: Usa meses de 30 días según método francés vencido ordinario
  */
 export function generateAmortizationTable(
     loanAmount: number,
@@ -67,12 +82,13 @@ export function generateAmortizationTable(
     const gracePeriod = graceApplies && graceMonths ? graceMonths : 0;
 
     // Calcular cuota normal (después del período de gracia)
+    // Nota: Si hay gracia total, el saldo cambiará y la cuota se recalculará
     const paymentMonths = totalMonths - gracePeriod;
-    const monthlyPayment = calculateMonthlyPayment(currentBalance, monthlyRate, paymentMonths);
+    let monthlyPayment = calculateMonthlyPayment(currentBalance, monthlyRate, paymentMonths);
 
     for (let period = 1; period <= totalMonths; period++) {
-        const date = new Date(startDate);
-        date.setMonth(date.getMonth() + period - 1);
+        // Usar meses de 30 días según método francés vencido ordinario
+        const date = addMonths30Days(startDate, period - 1);
 
         const initialBalance = currentBalance;
         const interest = currentBalance * monthlyRate;
@@ -95,12 +111,16 @@ export function generateAmortizationTable(
             }
         } else {
             // Período normal de pago
-            // Recalcular la cuota considerando el nuevo saldo después de la gracia
+            // En método francés, la cuota debe ser constante después del período de gracia
+            // Si hay gracia total, el saldo cambió, así que recalcular la cuota constante
             if (period === gracePeriod + 1) {
                 const remainingMonths = totalMonths - gracePeriod;
                 const recalculatedPayment = calculateMonthlyPayment(currentBalance, monthlyRate, remainingMonths);
                 payment = recalculatedPayment;
+                // Actualizar monthlyPayment para los períodos siguientes
+                monthlyPayment = recalculatedPayment;
             } else {
+                // Usar la cuota constante calculada (ya actualizada si hubo gracia)
                 payment = monthlyPayment;
             }
 
@@ -268,8 +288,8 @@ export function calculateConvexity(
  */
 export function calculateFinancialIndicators(
     loanAmount: number,
-    propertyPrice: number,
-    downPayment: number,
+    _propertyPrice: number,
+    _downPayment: number,
     monthlyRate: number,
     totalMonths: number,
     graceApplies: boolean,
@@ -298,14 +318,15 @@ export function calculateFinancialIndicators(
     const cashFlowsBank = amortizationTable.map(row => -row.payment); // Solo cuotas (ingreso del banco)
 
     // Calcular indicadores
-    const termYears = totalMonths / 12;
     const annualRate = (Math.pow(1 + monthlyRate, 12) - 1) * 100;
 
     // VAN (usando la tasa de interés como tasa de descuento)
     const van = calculateVAN(loanAmount, cashFlowsClient, (discountMonthlyRate ?? monthlyRate));
 
-    // TIR (mostrar TEM derivada de la TEA del crédito)
-    const tir = monthlyRate * 100;
+    // TIR (Tasa Interna de Retorno) - Calcula la tasa real que iguala el VAN a cero
+    // Para créditos con método francés, considera todos los flujos de caja (cuotas + costos)
+    const monthlyTIR = calculateTIR(loanAmount, cashFlowsClient) / 100; // TIR mensual en decimal
+    const tir = (Math.pow(1 + monthlyTIR, 12) - 1) * 100; // Convertir a TEA anual
 
     // TCEA
     const tcea = calculateTCEA(loanAmount, cashFlowsClient);

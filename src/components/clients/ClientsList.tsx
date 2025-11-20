@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import { Navigation } from "./Navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Button } from "./ui/button";
+import { Navigation } from "../shared/Navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Button } from "../ui/button";
 import {
   Table,
   TableBody,
@@ -9,11 +9,11 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "./ui/table";
-import { Screen, Client } from "../App";
+} from "../ui/table";
+import { Screen, Client } from "../../App";
 import { Plus, Edit, Trash2, Loader2, Users, Calculator } from "lucide-react";
-import { clientService } from "../services/clientService";
-import { Alert, AlertDescription } from "./ui/alert";
+import { clientService } from "../../services/clientService";
+import { Alert, AlertDescription } from "../ui/alert";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -22,8 +22,8 @@ import {
   AlertDialogTitle,
   AlertDialogCancel,
   AlertDialogAction,
-} from "./ui/alert-dialog";
-import { Badge } from "./ui/badge";
+} from "../ui/alert-dialog";
+import { Badge } from "../ui/badge";
 
 interface ClientsListProps {
   onNavigate: (screen: Screen) => void;

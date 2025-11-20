@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Navigation } from './Navigation';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
-import { Screen, Property } from '../App';
+import { Navigation } from '../shared/Navigation';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Textarea } from '../ui/textarea';
+import { Screen, Property } from '../../App';
 import { Save, X, ArrowLeft, Loader2 } from 'lucide-react';
-import { propertyService } from '../services/propertyService';
-import { Alert, AlertDescription } from './ui/alert';
-import { SuccessAlert } from './help/SuccessAlert';
+import { propertyService } from '../../services/propertyService';
+import { Alert, AlertDescription } from '../ui/alert';
+import { SuccessAlert } from '../help/SuccessAlert';
 
 interface PropertyFormProps {
   property?: Property | null;

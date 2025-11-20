@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 import {
   Building2,
   Home,
@@ -12,10 +12,11 @@ import {
   HelpCircle,
   ShieldCheck,
   UserCircle,
+  UserCheck,
 } from "lucide-react";
-import { Screen } from "../App";
-import { HelpCenter } from "./help/HelpCenter";
-import { userService } from "../services/userService";
+import { Screen } from "../../App";
+import { HelpCenter } from "../help/HelpCenter";
+import { userService } from "../../services/userService";
 import { DesktopNav } from "./nav/DesktopNav";
 import { MobileNav } from "./nav/MobileNav";
 
@@ -78,6 +79,11 @@ export function Navigation({
           screen: "user-management" as Screen,
           label: "Empleados",
           icon: ShieldCheck,
+        },
+        {
+          screen: "simulations-management" as Screen,
+          label: "Simulaciones",
+          icon: Calculator,
         },
         { screen: "projects" as Screen, label: "Proyectos", icon: Building },
         { screen: "reports" as Screen, label: "Reportes", icon: FileText },
@@ -159,7 +165,7 @@ export function Navigation({
 
             {/* Información del usuario */}
             {userProfile && (
-              <div className="hidden md:flex items-center px-3 py-2 mx-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 shadow-sm">
+              <div className="hidden md:flex items-center px-3 py-2 mx-2 bg-linear-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 shadow-sm">
                 <div
                   className={`w-8 h-8 ${
                     isAdmin ? "bg-blue-600" : "bg-green-600"

@@ -1,16 +1,16 @@
 import React, { useState, useEffect } from "react";
-import { Button } from "./ui/button";
-import { Navigation } from "./Navigation";
-import { Input } from "./ui/input";
-import { Label } from "./ui/label";
+import { Button } from "../ui/button";
+import { Navigation } from "../shared/Navigation";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "./ui/card";
-import { Alert, AlertDescription } from "./ui/alert";
+} from "../ui/card";
+import { Alert, AlertDescription } from "../ui/alert";
 import {
   Users,
   Plus,
@@ -22,15 +22,15 @@ import {
   Shield,
   User as UserIcon,
 } from "lucide-react";
-import { userService, User, CreateUserData } from "../services/userService";
-import { Screen } from "../App";
+import { userService, User, CreateUserData } from "../../services/userService";
+import { Screen } from "../../App";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
+} from "../ui/select";
 import {
   Dialog,
   DialogContent,
@@ -38,7 +38,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "./ui/dialog";
+} from "../ui/dialog";
 
 interface UserManagementProps {
   onNavigate: (screen: Screen) => void;

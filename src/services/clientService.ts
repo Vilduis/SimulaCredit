@@ -60,17 +60,25 @@ export const clientService = {
   /**
    * Obtener un cliente por DNI (del usuario actual)
    * Los admins pueden buscar cualquier DNI
+   * @param dni - Número de DNI a buscar
+   * @param excludeId - ID del cliente a excluir (útil para validaciones al editar)
    */
-  async getByDni(dni: string): Promise<Client | null> {
+  async getByDni(dni: string, excludeId?: string): Promise<Client | null> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
     // RLS maneja automáticamente el acceso
-    const { data, error } = await supabase
+    let query = supabase
       .from('clients')
       .select('*')
-      .eq('dni', dni)
-      .maybeSingle();
+      .eq('dni', dni);
+    
+    // Excluir el ID actual si se está editando
+    if (excludeId) {
+      query = query.neq('id', excludeId);
+    }
+    
+    const { data, error } = await query.maybeSingle();
 
     if (error) {
       if (error.code === 'PGRST116') return null;

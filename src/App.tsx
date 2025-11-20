@@ -1,29 +1,33 @@
 import { useState, useEffect, lazy, Suspense } from "react";
-import { LoginScreen } from "./components/LoginScreen";
-import { DashboardAdmin } from "./components/DashboardAdmin";
-import { DashboardEmpleado } from "./components/DashboardEmpleado";
-import { ClientRegistrationWithHelp } from "./components/ClientRegistrationWithHelp";
-import { ProjectsCatalog } from "./components/ProjectsCatalog";
-import { PropertyDetail } from "./components/PropertyDetail";
-import { LoanSimulatorWithHelp } from "./components/LoanSimulatorWithHelp";
+import { LoginScreen } from "./components/auth/LoginScreen";
+import { DashboardAdmin } from "./components/admin/DashboardAdmin";
+import { DashboardEmployee } from "./components/employee/DashboardEmployee";
+import { ClientRegistration } from "./components/clients/ClientRegistration";
+import { ProjectsCatalog } from "./components/properties/ProjectsCatalog";
+import { PropertyDetail } from "./components/properties/PropertyDetail";
+import { LoanSimulator } from "./components/simulation/LoanSimulator";
 // Lazy load de pantallas pesadas para mejorar primera carga
-const SimulationResultsWithHelpLazy = lazy(() =>
-  import("./components/SimulationResultsWithHelp").then((m) => ({
-    default: m.SimulationResultsWithHelp,
+const SimulationResultsLazy = lazy(() =>
+  import("./components/simulation/SimulationResults").then((m) => ({
+    default: m.SimulationResults,
   }))
 );
-const SimpleReportsLazy = lazy(() =>
-  import("./components/SimpleReports").then((m) => ({
-    default: m.SimpleReports,
+const ReportsLazy = lazy(() =>
+  import("./components/reports/Reports").then((m) => ({
+    default: m.Reports,
   }))
 );
-import { SimpleConfiguration } from "./components/SimpleConfiguration";
-import { PropertyForm } from "./components/PropertyForm";
-import { ClientsList } from "./components/ClientsList";
-import { UserManagement } from "./components/UserManagement";
+import { SystemConfiguration } from "./components/configuration/SystemConfiguration";
+import { PropertyForm } from "./components/properties/PropertyForm";
+import { ClientsList } from "./components/clients/ClientsList";
+import { UserManagement } from "./components/admin/UserManagement";
+import { FinancialEntitiesManagement } from "./components/admin/FinancialEntitiesManagement";
+import { SimulationsManagement } from "./components/admin/SimulationsManagement";
 import { authService } from "./services/authService";
 import { migrateProperties } from "./utils/migrateProperties";
+import { migrateFinancialEntities } from "./utils/migrateFinancialEntities";
 import { userService } from "./services/userService";
+import { Toaster } from "./components/ui/sonner";
 
 export type Screen =
   | "login"
@@ -38,7 +42,9 @@ export type Screen =
   | "results"
   | "reports"
   | "config"
-  | "user-management";
+  | "user-management"
+  | "financial-entities"
+  | "simulations-management";
 
 export type Client = {
   id: string;
@@ -88,10 +94,21 @@ export type LoanConfig = {
   graceType?: "total" | "partial";
   graceMonths?: number;
   bonusApplies: boolean;
+  bonusType?: "bbp" | "bfh" | null;
   bonusAmount?: number;
-  // Nuevo: COK anual (tasa de descuento) y costos mensuales adicionales
+  bfhModalidad?: "compra" | "construccion" | "mejoramiento" | null;
+  isSustainableHousing?: boolean; // Vivienda Sostenible (aumenta bonos BBP)
   discountRateAnnual?: number;
   extraMonthlyCosts?: number;
+  // Nuevos campos: Entidad financiera y seguros
+  entityId?: string | null;
+  insuranceLifeRate?: number;
+  insuranceLifeAmount?: number;
+  insurancePropertyRate?: number;
+  insurancePropertyAmount?: number;
+  commissionEvaluation?: number;
+  commissionDisbursement?: number;
+  administrativeFees?: number;
 };
 
 export type SimulationResult = {
@@ -179,6 +196,12 @@ export default function App() {
             await migrateProperties();
           } catch (error) {
             console.error("Error al migrar propiedades:", error);
+          }
+          // Migrar entidades financieras si es necesario (solo una vez)
+          try {
+            await migrateFinancialEntities();
+          } catch (error) {
+            console.error("Error al migrar entidades financieras:", error);
           }
         }
       } catch (error) {
@@ -300,6 +323,12 @@ export default function App() {
     } catch (error) {
       console.error("Error al migrar propiedades:", error);
     }
+    // Migrar entidades financieras si es necesario
+    try {
+      await migrateFinancialEntities();
+    } catch (error) {
+      console.error("Error al migrar entidades financieras:", error);
+    }
   };
 
   const handleLogout = async () => {
@@ -400,118 +429,137 @@ export default function App() {
           </div>
         }
       >
-      {currentScreen === "dashboard" && (
-        <>
-          {isAdmin ? (
-            <DashboardAdmin
-              onNavigate={navigateToScreen}
-              onLogout={handleLogout}
-              isAdmin={isAdmin}
-              userProfile={userProfile}
-            />
-          ) : (
-            <DashboardEmpleado
-              onNavigate={navigateToScreen}
-              onLogout={handleLogout}
-              isAdmin={isAdmin}
-              userProfile={userProfile}
-            />
-          )}
-        </>
-      )}
+        {currentScreen === "dashboard" && (
+          <>
+            {isAdmin ? (
+              <DashboardAdmin
+                onNavigate={navigateToScreen}
+                onLogout={handleLogout}
+                isAdmin={isAdmin}
+                userProfile={userProfile}
+              />
+            ) : (
+              <DashboardEmployee
+                onNavigate={navigateToScreen}
+                onLogout={handleLogout}
+                isAdmin={isAdmin}
+                userProfile={userProfile}
+              />
+            )}
+          </>
+        )}
 
-      {currentScreen === "clients" && (
-        <ClientRegistrationWithHelp
-          onNavigate={navigateToScreen}
-          onLogout={handleLogout}
-        />
-      )}
+        {currentScreen === "clients" && (
+          <ClientRegistration
+            onNavigate={navigateToScreen}
+            onLogout={handleLogout}
+          />
+        )}
 
-      {currentScreen === "projects" && (
-        <ProjectsCatalog
-          onNavigate={navigateToScreen}
-          onLogout={handleLogout}
-          onPropertySelect={handlePropertySelect}
-          onSimulateForProperty={handleSimulateForProperty}
-        />
-      )}
+        {currentScreen === "projects" && (
+          <ProjectsCatalog
+            onNavigate={navigateToScreen}
+            onLogout={handleLogout}
+            onPropertySelect={handlePropertySelect}
+            onSimulateForProperty={handleSimulateForProperty}
+          />
+        )}
 
-      {currentScreen === "property-detail" && selectedProperty && (
-        <PropertyDetail
-          property={selectedProperty}
-          onNavigate={navigateToScreen}
-          onLogout={handleLogout}
-          onSimulateForProperty={handleSimulateForProperty}
-        />
-      )}
+        {currentScreen === "property-detail" && selectedProperty && (
+          <PropertyDetail
+            property={selectedProperty}
+            onNavigate={navigateToScreen}
+            onLogout={handleLogout}
+            onSimulateForProperty={handleSimulateForProperty}
+          />
+        )}
 
-      {currentScreen === "simulator" && (
-        <LoanSimulatorWithHelp
-          property={selectedProperty}
-          onNavigate={navigateToScreen}
-          onLogout={handleLogout}
-          onSimulationComplete={handleSimulationComplete}
-        />
-      )}
+        {currentScreen === "simulator" && (
+          <LoanSimulator
+            property={selectedProperty}
+            onNavigate={navigateToScreen}
+            onLogout={handleLogout}
+            onSimulationComplete={handleSimulationComplete}
+          />
+        )}
 
-      {currentScreen === "results" && simulationResult && loanConfig && (
-        <SimulationResultsWithHelpLazy
-          result={simulationResult}
-          config={loanConfig}
-          property={selectedProperty}
-          onNavigate={navigateToScreen}
-          onLogout={handleLogout}
-        />
-      )}
+        {currentScreen === "results" && simulationResult && loanConfig && (
+          <SimulationResultsLazy
+            result={simulationResult}
+            config={loanConfig}
+            property={selectedProperty}
+            onNavigate={navigateToScreen}
+            onLogout={handleLogout}
+          />
+        )}
 
-      {currentScreen === "reports" && (
-        <SimpleReportsLazy onNavigate={navigateToScreen} onLogout={handleLogout} />
-      )}
+        {currentScreen === "reports" && (
+          <ReportsLazy onNavigate={navigateToScreen} onLogout={handleLogout} />
+        )}
 
-      {currentScreen === "config" && (
-        <SimpleConfiguration
-          onNavigate={navigateToScreen}
-          onLogout={handleLogout}
-        />
-      )}
+        {currentScreen === "config" && (
+          <SystemConfiguration
+            onNavigate={navigateToScreen}
+            onLogout={handleLogout}
+          />
+        )}
 
-      {currentScreen === "property-form" && (
-        <PropertyForm
-          property={(() => {
-            try {
-              const stored = sessionStorage.getItem("editingProperty");
-              if (stored) {
-                sessionStorage.removeItem("editingProperty");
-                return JSON.parse(stored);
+        {currentScreen === "property-form" && (
+          <PropertyForm
+            property={(() => {
+              try {
+                const stored = sessionStorage.getItem("editingProperty");
+                if (stored) {
+                  sessionStorage.removeItem("editingProperty");
+                  return JSON.parse(stored);
+                }
+              } catch (e) {
+                return null;
               }
-            } catch (e) {
               return null;
-            }
-            return null;
-          })()}
-          onNavigate={navigateToScreen}
-          onLogout={handleLogout}
-          onSave={() => {
-            // Recargar propiedades si es necesario
-          }}
-        />
-      )}
+            })()}
+            onNavigate={navigateToScreen}
+            onLogout={handleLogout}
+            onSave={() => {
+              // Recargar propiedades si es necesario
+            }}
+          />
+        )}
 
-      {currentScreen === "clients-list" && (
-        <ClientsList onNavigate={navigateToScreen} onLogout={handleLogout} />
-      )}
+        {currentScreen === "clients-list" && (
+          <ClientsList onNavigate={navigateToScreen} onLogout={handleLogout} />
+        )}
 
-      {currentScreen === "client-edit" && (
-        <ClientRegistrationWithHelp
-          onNavigate={navigateToScreen}
-          onLogout={handleLogout}
-        />
-      )}
+        {currentScreen === "client-edit" && (
+          <ClientRegistration
+            onNavigate={navigateToScreen}
+            onLogout={handleLogout}
+          />
+        )}
 
-      {currentScreen === "user-management" && (
-        <UserManagement onNavigate={navigateToScreen} onLogout={handleLogout} />
-      )}
+        {currentScreen === "user-management" && (
+          <UserManagement
+            onNavigate={navigateToScreen}
+            onLogout={handleLogout}
+          />
+        )}
+
+        {currentScreen === "financial-entities" && (
+          <FinancialEntitiesManagement
+            onNavigate={navigateToScreen}
+            onLogout={handleLogout}
+          />
+        )}
+
+        {currentScreen === "simulations-management" && (
+          <SimulationsManagement
+            onNavigate={navigateToScreen}
+            onLogout={handleLogout}
+          />
+        )}
+
       </Suspense>
+      <Toaster />
     </div>
   );
 }

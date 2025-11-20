@@ -6,6 +6,8 @@ export interface SimulationDB {
     user_id?: string;
     client_id: string | null;
     property_id: string | null;
+    entity_id: string | null; // Nueva: Entidad financiera asociada
+    status: 'draft' | 'pending' | 'approved' | 'rejected' | 'active' | 'completed' | 'cancelled'; // Nueva: Estado
     property_price: number;
     down_payment: number;
     loan_amount: number;
@@ -18,7 +20,21 @@ export interface SimulationDB {
     grace_type: 'total' | 'partial' | null;
     grace_months: number | null;
     bonus_applies: boolean;
+    bonus_type: 'bbp' | 'bfh' | null;
     bonus_amount: number | null;
+    bfh_modalidad: 'compra' | 'construccion' | 'mejoramiento' | null;
+    is_sustainable_housing: boolean;
+    discount_rate_annual?: number | null;
+    extra_monthly_costs?: number | null;
+    // Nuevos campos de seguros
+    insurance_life_rate?: number | null;
+    insurance_life_amount?: number | null;
+    insurance_property_rate?: number | null;
+    insurance_property_amount?: number | null;
+    commission_evaluation?: number | null;
+    commission_disbursement?: number | null;
+    administrative_fees?: number | null;
+    // Resultados
     monthly_payment: number;
     tcea: number;
     trea: number;
@@ -37,6 +53,7 @@ export interface SimulationDB {
 export interface CreateSimulationData {
     clientId?: string | null;
     propertyId?: string | null;
+    entityId?: string | null; // Nueva: ID de entidad financiera
     config: LoanConfig;
     result: SimulationResult;
 }
@@ -122,6 +139,8 @@ export const simulationService = {
             user_id: user.id,
             client_id: clientId || null,
             property_id: propertyId || null,
+            entity_id: simulation.entityId || null,
+            status: 'draft', // Por defecto es borrador
             property_price: config.propertyPrice,
             down_payment: config.downPayment,
             loan_amount: config.loanAmount,
@@ -134,7 +153,21 @@ export const simulationService = {
             grace_type: config.graceType || null,
             grace_months: config.graceMonths || null,
             bonus_applies: config.bonusApplies,
+            bonus_type: config.bonusType || null,
             bonus_amount: config.bonusAmount || null,
+            bfh_modalidad: config.bfhModalidad || null,
+            is_sustainable_housing: config.isSustainableHousing || false,
+            discount_rate_annual: config.discountRateAnnual ?? null,
+            extra_monthly_costs: config.extraMonthlyCosts ?? null,
+            // Campos de seguros del LoanConfig
+            insurance_life_rate: config.insuranceLifeRate ?? null,
+            insurance_life_amount: config.insuranceLifeAmount ?? null,
+            insurance_property_rate: config.insurancePropertyRate ?? null,
+            insurance_property_amount: config.insurancePropertyAmount ?? null,
+            commission_evaluation: config.commissionEvaluation ?? null,
+            commission_disbursement: config.commissionDisbursement ?? null,
+            administrative_fees: config.administrativeFees ?? null,
+            // Resultados
             monthly_payment: result.monthlyPayment,
             tcea: result.tcea,
             trea: result.trea,
@@ -193,6 +226,52 @@ export const simulationService = {
             .eq('user_id', user.id);
 
         if (error) throw error;
+    },
+
+    /**
+     * Obtener simulaciones por estado
+     */
+    async getByStatus(status: SimulationDB['status']): Promise<SimulationDB[]> {
+        const { data, error } = await supabase
+            .from('simulations')
+            .select('*')
+            .eq('status', status)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+    },
+
+    /**
+     * Obtener simulaciones por entidad financiera
+     */
+    async getByEntityId(entityId: string): Promise<SimulationDB[]> {
+        const { data, error } = await supabase
+            .from('simulations')
+            .select('*')
+            .eq('entity_id', entityId)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        return data || [];
+    },
+
+    /**
+     * Cambiar estado de una simulación
+     */
+    async updateStatus(id: string, status: SimulationDB['status']): Promise<SimulationDB> {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error('User not authenticated');
+
+        const { data, error } = await supabase
+            .from('simulations')
+            .update({ status })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
     }
 };
 

@@ -1,25 +1,39 @@
-import { useState } from 'react';
-import { Navigation } from './Navigation';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Label } from './ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Switch } from './ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
-import { Separator } from './ui/separator';
-import { Screen } from '../App';
+import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { Navigation } from '../shared/Navigation';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Switch } from '../ui/switch';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Separator } from '../ui/separator';
+import { Screen } from '../../App';
 import { 
   Settings, Save, RotateCcw,
   DollarSign, Download, Upload, Database
 } from 'lucide-react';
+import { configService } from '../../services/configService';
+import { toast } from 'sonner';
 
 interface ConfigurationProps {
   onNavigate: (screen: Screen) => void;
   onLogout: () => void;
 }
 
-export function SimpleConfiguration({ onNavigate, onLogout }: ConfigurationProps) {
+type FinancialSettingsState = {
+  defaultCurrency: 'PEN' | 'USD';
+  defaultInterestRate: number;
+  defaultTermYears: number;
+  defaultDownPayment: number;
+  enableGracePeriod: boolean;
+  enableStateBonus: boolean;
+  defaultDiscountRateAnnual?: number;
+};
+
+export function SystemConfiguration({ onNavigate, onLogout }: ConfigurationProps) {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState('general');
   
   // General Settings State
@@ -31,33 +45,123 @@ export function SimpleConfiguration({ onNavigate, onLogout }: ConfigurationProps
   });
 
   // Financial Settings State
-  const [financialSettings, setFinancialSettings] = useState({
+  const [financialSettings, setFinancialSettings] = useState<FinancialSettingsState>({
     defaultCurrency: 'PEN',
     defaultInterestRate: 8.5,
     defaultTermYears: 20,
     defaultDownPayment: 20,
     enableGracePeriod: true,
-    enableStateBonus: true
+    enableStateBonus: true,
+    defaultDiscountRateAnnual: 8.0
   });
 
-  const handleSaveSettings = (category: string) => {
+  const [loadingFinancial, setLoadingFinancial] = useState(false);
+  const [savingFinancial, setSavingFinancial] = useState(false);
+
+  // Función helper para limpiar mensajes de error y evitar mostrar localhost
+  const getErrorMessage = (error: any): string => {
+    if (!error) return "Ha ocurrido un error";
+
+    let message = error.message || String(error);
+
+    // Remover referencias a localhost, URLs y detalles técnicos
+    message = message.replace(/https?:\/\/[^\s]+/g, "");
+    message = message.replace(/localhost[^\s]*/gi, "");
+    message = message.replace(/fetch failed/gi, "");
+    message = message.replace(/network error/gi, "");
+    message = message.replace(/Failed to fetch/gi, "");
+
+    // Limpiar espacios múltiples
+    message = message.replace(/\s+/g, " ").trim();
+
+    // Si el mensaje está vacío o es muy técnico, usar un mensaje genérico
+    if (!message || message.length < 3) {
+      return "Ha ocurrido un error. Por favor, intente nuevamente.";
+    }
+
+    return message;
+  };
+
+  // Cargar configuración financiera desde DB
+  useEffect(() => {
+    const loadConfig = async () => {
+      try {
+        setLoadingFinancial(true);
+        const config = await configService.getFirst();
+        if (config) {
+          setFinancialSettings(prev => ({
+            ...prev,
+            defaultCurrency: (config.default_currency ?? 'PEN') as 'PEN' | 'USD',
+            defaultInterestRate: config.default_interest_rate ?? prev.defaultInterestRate,
+            defaultTermYears: config.default_term_years ?? prev.defaultTermYears,
+            defaultDownPayment: config.default_down_payment ?? prev.defaultDownPayment,
+            enableGracePeriod: config.enable_grace_period ?? prev.enableGracePeriod,
+            enableStateBonus: config.enable_state_bonus ?? prev.enableStateBonus,
+            defaultDiscountRateAnnual: config.default_discount_rate_annual ?? prev.defaultDiscountRateAnnual,
+          }));
+        }
+      } catch (err) {
+        console.error('Error cargando system_config:', err);
+      } finally {
+        setLoadingFinancial(false);
+      }
+    };
+    loadConfig();
+  }, []);
+
+  const handleSaveSettings = async (category: string) => {
+    if (category === 'financiero') {
+      // Leer estados para evitar race conditions y silenciar warnings
+      if (savingFinancial || loadingFinancial) {
+        console.warn('Guardado ignorado: proceso en curso o configuración cargando');
+        return;
+      }
+      try {
+        setSavingFinancial(true);
+        await configService.upsertFinancialSettings({
+          default_currency: financialSettings.defaultCurrency,
+          default_interest_rate: financialSettings.defaultInterestRate,
+          default_term_years: financialSettings.defaultTermYears,
+          default_down_payment: financialSettings.defaultDownPayment,
+          enable_grace_period: financialSettings.enableGracePeriod,
+          enable_state_bonus: financialSettings.enableStateBonus,
+          default_discount_rate_annual: financialSettings.defaultDiscountRateAnnual,
+        });
+        
+        // Invalidar caché de React Query para que todos los componentes se actualicen
+        await queryClient.invalidateQueries({ queryKey: ['system_config'] });
+        
+        toast.success('Configuración financiera guardada exitosamente', {
+          description: 'Los cambios se aplicarán inmediatamente en el simulador.',
+        });
+      } catch (err: any) {
+        console.error('Error guardando configuración financiera:', err);
+        const errorMessage = getErrorMessage(err);
+        toast.error('No se pudo guardar configuración financiera', {
+          description: errorMessage || 'Revisar permisos (solo admin)',
+        });
+      } finally {
+        setSavingFinancial(false);
+      }
+      return;
+    }
     console.log(`Guardando configuración de ${category}`);
-    alert(`Configuración de ${category} guardada exitosamente`);
+    toast.success(`Configuración de ${category} guardada exitosamente`);
   };
 
   const handleResetSettings = (category: string) => {
     if (confirm(`¿Está seguro de restablecer la configuración de ${category}?`)) {
       console.log(`Restableciendo configuración de ${category}`);
-      alert(`Configuración de ${category} restablecida`);
+      toast.success(`Configuración de ${category} restablecida`);
     }
   };
 
   const handleExportSettings = () => {
-    alert('Exportando configuración del sistema...');
+    toast.info('Exportando configuración del sistema...');
   };
 
   const handleImportSettings = () => {
-    alert('Importando configuración del sistema...');
+    toast.info('Importando configuración del sistema...');
   };
 
   return (
@@ -179,7 +283,7 @@ export function SimpleConfiguration({ onNavigate, onLogout }: ConfigurationProps
                     
                     <div className="space-y-2">
                       <Label>Moneda Predeterminada</Label>
-                      <Select value={financialSettings.defaultCurrency} onValueChange={(value) => setFinancialSettings(prev => ({ ...prev, defaultCurrency: value }))}>
+                      <Select value={financialSettings.defaultCurrency} onValueChange={(value) => setFinancialSettings(prev => ({ ...prev, defaultCurrency: value as 'PEN' | 'USD' }))}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -219,6 +323,21 @@ export function SimpleConfiguration({ onNavigate, onLogout }: ConfigurationProps
                         value={financialSettings.defaultDownPayment}
                         onChange={(e) => setFinancialSettings(prev => ({ ...prev, defaultDownPayment: parseFloat(e.target.value) }))}
                       />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="default-discount-rate">Tasa de Descuento Anual - COK (%)</Label>
+                      <Input
+                        id="default-discount-rate"
+                        type="number"
+                        step="0.01"
+                        value={financialSettings.defaultDiscountRateAnnual ?? ''}
+                        onChange={(e) => setFinancialSettings(prev => ({ ...prev, defaultDiscountRateAnnual: e.target.value ? parseFloat(e.target.value) : undefined }))}
+                        placeholder="8.0"
+                      />
+                      <p className="text-xs text-gray-500">
+                        Tasa de descuento anual (COK) para cálculos de VAN y TIR
+                      </p>
                     </div>
                   </div>
 

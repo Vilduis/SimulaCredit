@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Navigation } from "./Navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
-import { Screen, Property } from "../App";
+import { Navigation } from "../shared/Navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+import { Screen, Property } from "../../App";
 import {
   MapPin,
   Home,
@@ -15,9 +15,9 @@ import {
   Edit,
   Trash2,
 } from "lucide-react";
-import { propertyService } from "../services/propertyService";
-import { Alert, AlertDescription } from "./ui/alert";
-import { userService } from "../services/userService";
+import { propertyService } from "../../services/propertyService";
+import { Alert, AlertDescription } from "../ui/alert";
+import { userService } from "../../services/userService";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +26,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "./ui/alert-dialog";
+} from "../ui/alert-dialog";
 
 interface ProjectsCatalogProps {
   onNavigate: (screen: Screen) => void;

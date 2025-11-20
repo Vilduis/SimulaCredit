@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
-import { Navigation } from "./Navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Button } from "./ui/button";
+import { Navigation } from "../shared/Navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Button } from "../ui/button";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
+} from "../ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import {
   Table,
   TableBody,
@@ -17,9 +17,10 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "./ui/table";
-import { Badge } from "./ui/badge";
-import { Screen } from "../App";
+} from "../ui/table";
+import { Badge } from "../ui/badge";
+import { Screen } from "../../App";
+import { toast } from "sonner";
 import {
   Download,
   FileSpreadsheet,
@@ -32,24 +33,35 @@ import {
   Loader2,
   Users,
 } from "lucide-react";
-import { simulationService } from "../services/simulationService";
-import { clientService } from "../services/clientService";
-import { propertyService } from "../services/propertyService";
-import { Alert, AlertDescription } from "./ui/alert";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "./ui/dialog";
-import { exportReportsToPDF, exportReportsToExcel } from "../utils/exportUtils";
+import { simulationService } from "../../services/simulationService";
+import { clientService } from "../../services/clientService";
+import { propertyService } from "../../services/propertyService";
+import { financialEntityService } from "../../services/financialEntityService";
+import { Alert, AlertDescription } from "../ui/alert";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "../ui/dialog";
+import {
+  exportReportsToPDF,
+  exportReportsToExcel,
+} from "../../utils/exportUtils";
 
 interface ReportsProps {
   onNavigate: (screen: Screen) => void;
   onLogout: () => void;
 }
 
-export function SimpleReports({ onNavigate, onLogout }: ReportsProps) {
+export function Reports({ onNavigate, onLogout }: ReportsProps) {
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [selectedReport, setSelectedReport] = useState("overview");
   const [simulations, setSimulations] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
+  const [financialEntities, setFinancialEntities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewOpen, setViewOpen] = useState(false);
@@ -71,14 +83,17 @@ export function SimpleReports({ onNavigate, onLogout }: ReportsProps) {
   };
 
   const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      completed: { label: "Completada", className: "bg-green-500" },
+    const statusConfig: Record<string, { label: string; className: string }> = {
+      draft: { label: "Borrador", className: "bg-gray-500" },
       pending: { label: "Pendiente", className: "bg-yellow-500" },
-      archived: { label: "Archivada", className: "bg-gray-500" },
+      approved: { label: "Aprobada", className: "bg-green-500" },
+      rejected: { label: "Rechazada", className: "bg-red-500" },
+      active: { label: "Activa", className: "bg-blue-500" },
+      completed: { label: "Completada", className: "bg-green-600" },
+      cancelled: { label: "Cancelada", className: "bg-gray-600" },
     };
 
-    const config =
-      statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+    const config = statusConfig[status] || statusConfig.pending;
     return <Badge className={config.className}>{config.label}</Badge>;
   };
 
@@ -91,16 +106,18 @@ export function SimpleReports({ onNavigate, onLogout }: ReportsProps) {
       setLoading(true);
       setError(null);
 
-      // Cargar simulaciones, clientes y propiedades
-      const [simsData, clientsData, propertiesData] = await Promise.all([
+      // Cargar simulaciones, clientes, propiedades y entidades financieras
+      const [simsData, clientsData, propertiesData, entitiesData] = await Promise.all([
         simulationService.getAll(),
         clientService.getAll(),
         propertyService.getAll(),
+        financialEntityService.getAll(),
       ]);
 
       setSimulations(simsData);
       setClients(clientsData);
       setProperties(propertiesData);
+      setFinancialEntities(entitiesData);
     } catch (err: any) {
       setError(err.message || "Error al cargar datos para reportes");
       console.error("Error al cargar datos:", err);
@@ -119,13 +136,24 @@ export function SimpleReports({ onNavigate, onLogout }: ReportsProps) {
     const periodLabel = periodMap[selectedPeriod] || selectedPeriod;
     try {
       if (format === "pdf") {
-        await exportReportsToPDF({ recentSimulations, topClients, periodLabel });
+        await exportReportsToPDF({
+          recentSimulations,
+          topClients,
+          periodLabel,
+        });
       } else if (format === "excel") {
-        await exportReportsToExcel({ recentSimulations, topClients, periodLabel });
+        await exportReportsToExcel({
+          recentSimulations,
+          topClients,
+          periodLabel,
+        });
       }
     } catch (err: any) {
       console.error("Error exportando reporte:", err);
-      alert(`Error exportando reporte: ${err?.message || "intente nuevamente"}`);
+      const errorMessage = err?.message?.replace(/https?:\/\/[^\s]+/g, "").replace(/localhost[^\s]*/gi, "").trim() || "intente nuevamente";
+      toast.error("Error exportando reporte", {
+        description: errorMessage,
+      });
     }
   };
 
@@ -139,7 +167,8 @@ export function SimpleReports({ onNavigate, onLogout }: ReportsProps) {
       property: property?.name || "Propiedad no especificada",
       amount: sim.loan_amount || 0,
       date: sim.created_at ?? "",
-      status: "completed",
+      status: sim.status || "draft",
+      entityId: sim.entity_id,
     };
   });
 
@@ -438,6 +467,7 @@ export function SimpleReports({ onNavigate, onLogout }: ReportsProps) {
                         <TableHead>Monto</TableHead>
                         <TableHead>Fecha</TableHead>
                         <TableHead>Estado</TableHead>
+                        <TableHead>Entidad</TableHead>
                         <TableHead></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -445,27 +475,38 @@ export function SimpleReports({ onNavigate, onLogout }: ReportsProps) {
                       {recentSimulations.length === 0 ? (
                         <TableRow>
                           <TableCell
-                            colSpan={6}
+                            colSpan={7}
                             className="text-center text-gray-500 py-8"
                           >
                             No hay simulaciones registradas
                           </TableCell>
                         </TableRow>
                       ) : (
-                        recentSimulations.map((sim) => (
+                        recentSimulations.map((sim) => {
+                          const entity = financialEntities.find((e) => e.id === sim.entityId);
+                          return (
                           <TableRow key={sim.id}>
                             <TableCell>{sim.client}</TableCell>
                             <TableCell>{sim.property}</TableCell>
                             <TableCell>{formatCurrency(sim.amount)}</TableCell>
                             <TableCell>{formatDate(sim.date)}</TableCell>
                             <TableCell>{getStatusBadge(sim.status)}</TableCell>
+                              <TableCell>
+                                {entity ? entity.short_name || entity.name : "-"}
+                              </TableCell>
                             <TableCell>
-                              <Button variant="ghost" size="sm" onClick={() => openViewSimulation(sim.id)}>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => openViewSimulation(sim.id)}
+                                  title="Ver detalles"
+                              >
                                 <Eye className="w-4 h-4" />
                               </Button>
                             </TableCell>
                           </TableRow>
-                        ))
+                          );
+                        })
                       )}
                     </TableBody>
                   </Table>
@@ -535,7 +576,9 @@ export function SimpleReports({ onNavigate, onLogout }: ReportsProps) {
                                     : "bg-gray-200 text-gray-700"
                                 }
                               >
-                                {client.simulations > 0 ? "Activo" : "Prospecto"}
+                                {client.simulations > 0
+                                  ? "Activo"
+                                  : "Prospecto"}
                               </Badge>
                             </TableCell>
                           </TableRow>
@@ -559,39 +602,56 @@ export function SimpleReports({ onNavigate, onLogout }: ReportsProps) {
                       <div>
                         <span className="text-gray-600">Cliente</span>
                         <div className="text-gray-900">
-                          {clients.find(c => c.id === viewSim.client_id)?.name || 'Cliente no especificado'}
+                          {clients.find((c) => c.id === viewSim.client_id)
+                            ?.name || "Cliente no especificado"}
                         </div>
                       </div>
                       <div>
                         <span className="text-gray-600">Propiedad</span>
                         <div className="text-gray-900">
-                          {properties.find(p => p.id === viewSim.property_id)?.name || 'Propiedad no especificada'}
+                          {properties.find((p) => p.id === viewSim.property_id)
+                            ?.name || "Propiedad no especificada"}
                         </div>
                       </div>
                       <div>
                         <span className="text-gray-600">Monto</span>
-                        <div className="text-gray-900">{formatCurrency(viewSim.loan_amount || 0)}</div>
+                        <div className="text-gray-900">
+                          {formatCurrency(viewSim.loan_amount || 0)}
+                        </div>
                       </div>
                       <div>
                         <span className="text-gray-600">Cuota Mensual</span>
-                        <div className="text-gray-900">{formatCurrency(viewSim.monthly_payment || 0)}</div>
+                        <div className="text-gray-900">
+                          {formatCurrency(viewSim.monthly_payment || 0)}
+                        </div>
                       </div>
                       <div>
                         <span className="text-gray-600">TCEA</span>
-                        <div className="text-gray-900">{(viewSim.tcea ?? 0).toFixed(2)}%</div>
+                        <div className="text-gray-900">
+                          {(viewSim.tcea ?? 0).toFixed(2)}%
+                        </div>
                       </div>
                       <div>
                         <span className="text-gray-600">Plazo</span>
-                        <div className="text-gray-900">{viewSim.term_years} años</div>
+                        <div className="text-gray-900">
+                          {viewSim.term_years} años
+                        </div>
                       </div>
                     </div>
-                    <div className="text-xs text-gray-500">Creada el {viewSim.created_at ? formatDate(viewSim.created_at) : '-'}</div>
+                    <div className="text-xs text-gray-500">
+                      Creada el{" "}
+                      {viewSim.created_at
+                        ? formatDate(viewSim.created_at)
+                        : "-"}
+                    </div>
                   </div>
                 ) : (
                   <div className="text-sm text-gray-600">Cargando...</div>
                 )}
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setViewOpen(false)}>Cerrar</Button>
+                  <Button variant="outline" onClick={() => setViewOpen(false)}>
+                    Cerrar
+                  </Button>
                 </DialogFooter>
               </DialogContent>
             </Dialog>

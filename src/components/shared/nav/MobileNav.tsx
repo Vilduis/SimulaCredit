@@ -1,5 +1,5 @@
-import { Button } from "../ui/button";
-import { Screen } from "../../App";
+import { Button } from "../../ui/button";
+import { Screen } from "../../../App";
 import { Menu, HelpCircle, LogOut } from "lucide-react";
 import {
   DropdownMenu,
@@ -7,7 +7,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-} from "../ui/dropdown-menu";
+} from "../../ui/dropdown-menu";
 
 interface MobileNavProps {
   items: { screen: Screen; label: string; icon: any }[];

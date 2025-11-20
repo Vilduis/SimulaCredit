@@ -1,5 +1,5 @@
-import { Button } from "../ui/button";
-import { Screen } from "../../App";
+import { Button } from "../../ui/button";
+import { Screen } from "../../../App";
 
 interface DesktopNavProps {
   items: { screen: Screen; label: string; icon: any }[];

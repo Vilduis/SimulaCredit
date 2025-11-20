@@ -19,6 +19,7 @@ import {
   FileText,
   Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface HelpCenterProps {
   isOpen: boolean;
@@ -152,7 +153,9 @@ export function HelpCenter({ isOpen, onClose }: HelpCenterProps) {
       if (MANUAL_URL) {
         window.open(MANUAL_URL, "_blank", "noopener,noreferrer");
       } else {
-        alert("El manual no está configurado. Contacte al administrador.");
+        toast.info("El manual no está configurado", {
+          description: "Contacte al administrador.",
+        });
       }
     } finally {
       setIsDownloading(false);

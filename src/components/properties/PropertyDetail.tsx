@@ -1,8 +1,8 @@
-import { Navigation } from './Navigation';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Screen, Property } from '../App';
+import { Navigation } from '../shared/Navigation';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
+import { Screen, Property } from '../../App';
 import { MapPin, Home, Car, Dumbbell, Shield, Calculator, ArrowLeft } from 'lucide-react';
 // Reemplazado ImageWithFallback por <img> tras eliminar carpeta figma
 

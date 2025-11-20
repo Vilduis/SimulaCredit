@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Navigation } from "./Navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
+import { Navigation } from "../shared/Navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
 import {
   Table,
   TableBody,
@@ -10,8 +10,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "./ui/table";
-import { Screen, Property, LoanConfig, SimulationResult } from "../App";
+} from "../ui/table";
+import { Screen, Property, LoanConfig, SimulationResult } from "../../App";
 import {
   Download,
   FileSpreadsheet,
@@ -24,22 +24,23 @@ import {
   Mail,
   Loader2,
 } from "lucide-react";
-import { HelpTooltip } from "./help/HelpTooltip";
-import { SuccessAlert } from "./help/SuccessAlert";
-import { simulationService } from "../services/simulationService";
-import { clientService } from "../services/clientService";
-import { Alert, AlertDescription } from "./ui/alert";
+import { HelpTooltip } from "../help/HelpTooltip";
+import { SuccessAlert } from "../help/SuccessAlert";
+import { simulationService } from "../../services/simulationService";
+import { clientService } from "../../services/clientService";
+import { toast } from "sonner";
+import { Alert, AlertDescription } from "../ui/alert";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
+} from "../ui/select";
 import {
   exportSimulationToPDF,
   exportSimulationToExcel,
-} from "../utils/exportUtils";
+} from "../../utils/exportUtils";
 
 interface SimulationResultsProps {
   result: SimulationResult;
@@ -49,7 +50,7 @@ interface SimulationResultsProps {
   onLogout: () => void;
 }
 
-export function SimulationResultsWithHelp({
+export function SimulationResults({
   result,
   config,
   property,
@@ -121,7 +122,10 @@ export function SimulationResultsWithHelp({
       });
     } catch (err: any) {
       console.error("Error generando PDF:", err);
-      alert(`Error generando PDF: ${err?.message || "intente nuevamente"}`);
+      const errorMessage = err?.message?.replace(/https?:\/\/[^\s]+/g, "").replace(/localhost[^\s]*/gi, "").trim() || "intente nuevamente";
+      toast.error("Error generando PDF", {
+        description: errorMessage,
+      });
     }
   };
 
@@ -140,7 +144,10 @@ export function SimulationResultsWithHelp({
       });
     } catch (err: any) {
       console.error("Error exportando Excel:", err);
-      alert(`Error exportando Excel: ${err?.message || "intente nuevamente"}`);
+      const errorMessage = err?.message?.replace(/https?:\/\/[^\s]+/g, "").replace(/localhost[^\s]*/gi, "").trim() || "intente nuevamente";
+      toast.error("Error exportando Excel", {
+        description: errorMessage,
+      });
     }
   };
 
@@ -160,6 +167,7 @@ export function SimulationResultsWithHelp({
       await simulationService.create({
         clientId: selectedClientId,
         propertyId: property?.id || null,
+        entityId: config.entityId || null,
         config,
         result,
       });
@@ -253,13 +261,13 @@ export function SimulationResultsWithHelp({
       },
     },
     {
-      label: "TIR (TEM mensual del crédito)",
+      label: "TIR (Tasa Interna de Retorno)",
       value: formatPercentage(result.tir),
       tooltip: {
-        title: "TIR / TEM",
+        title: "TIR",
         description:
-          "Se muestra la TEM (Tasa Efectiva Mensual) derivada de la TEA del crédito.",
-        warning: "Equivale a la tasa mensual del préstamo",
+          "Tasa Interna de Retorno (TIR) expresada como TEA. Es la tasa que iguala el valor presente de todas las cuotas y costos con el monto del préstamo recibido.",
+        warning: "Incluye todos los costos del crédito (intereses, seguros, comisiones)",
       },
     },
     {

@@ -1,21 +1,22 @@
 import { useState, useEffect } from "react";
-import { Navigation } from "./Navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
+import { Navigation } from "../shared/Navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "./ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { Screen, Client } from "../App";
+} from "../ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
+import { Screen, Client } from "../../App";
 import { Save, X, RotateCcw, List } from "lucide-react";
-import { FormField } from "./help/FormField";
-import { SuccessAlert } from "./help/SuccessAlert";
-import { clientService } from "../services/clientService";
+import { FormField } from "../help/FormField";
+import { SuccessAlert } from "../help/SuccessAlert";
+import { clientService } from "../../services/clientService";
+import { toast } from "sonner";
 
 interface ClientRegistrationProps {
   onNavigate: (screen: Screen) => void;
@@ -23,7 +24,7 @@ interface ClientRegistrationProps {
   editingClient?: Client | null;
 }
 
-export function ClientRegistrationWithHelp({
+export function ClientRegistration({
   onNavigate,
   onLogout,
   editingClient,
@@ -50,6 +51,7 @@ export function ClientRegistrationWithHelp({
   >({});
   const [showSuccess, setShowSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [currentEditingClientId, setCurrentEditingClientId] = useState<string | null>(null);
   // Reference loading to avoid TS6133 unused variable warning
   useEffect(() => {}, [loading]);
 
@@ -61,7 +63,7 @@ export function ClientRegistrationWithHelp({
         const stored = sessionStorage.getItem("editingClient");
         if (stored) {
           clientToEdit = JSON.parse(stored);
-          sessionStorage.removeItem("editingClient");
+          // No remover de sessionStorage aquí, lo necesitamos en handleSave
         }
       } catch (e) {
         // Ignorar error
@@ -69,6 +71,10 @@ export function ClientRegistrationWithHelp({
     }
 
     if (clientToEdit) {
+      // Guardar el ID del cliente que se está editando
+      if (clientToEdit.id) {
+        setCurrentEditingClientId(clientToEdit.id);
+      }
       setFormData({
         name: clientToEdit.name || "",
         dni: clientToEdit.dni || "",
@@ -82,6 +88,9 @@ export function ClientRegistrationWithHelp({
         province: clientToEdit.province || "",
         district: clientToEdit.district || "",
       });
+    } else {
+      // Si no hay cliente a editar, limpiar el ID
+      setCurrentEditingClientId(null);
     }
   }, [editingClient]);
 
@@ -189,7 +198,7 @@ export function ClientRegistrationWithHelp({
       (v: any) => v?.level === "error"
     );
     if (hasErrors) {
-      alert("Por favor corrija los errores antes de guardar");
+      toast.error("Por favor corrija los errores antes de guardar");
       return;
     }
 
@@ -209,33 +218,46 @@ export function ClientRegistrationWithHelp({
         district: formData.district,
       };
 
-      // Verificar si estamos editando (obtener de sessionStorage si no viene en props)
-      let clientToEdit = editingClient;
-      if (!clientToEdit) {
-        try {
-          const stored = sessionStorage.getItem("editingClient");
-          if (stored) {
-            clientToEdit = JSON.parse(stored);
+      // Verificar si estamos editando usando el ID guardado
+      if (currentEditingClientId) {
+        // Obtener el DNI original del cliente para comparar
+        let originalDni = "";
+        let clientToEdit = editingClient;
+        if (!clientToEdit) {
+          try {
+            const stored = sessionStorage.getItem("editingClient");
+            if (stored) {
+              clientToEdit = JSON.parse(stored);
+              originalDni = clientToEdit?.dni || "";
+            }
+          } catch (e) {
+            // Ignorar
           }
-        } catch (e) {
-          // Ignorar
+        } else {
+          originalDni = clientToEdit.dni || "";
         }
-      }
 
-      if (clientToEdit) {
         // Actualizar cliente existente
-        // Verificar si el DNI cambió y si ya existe
-        if (formData.dni !== clientToEdit.dni) {
-          const existingClient = await clientService.getByDni(formData.dni);
+        // Solo validar DNI si cambió (para evitar validar el mismo DNI del cliente actual)
+        if (formData.dni !== originalDni) {
+          // El DNI cambió, verificar si ya existe en otro cliente
+          const existingClient = await clientService.getByDni(formData.dni, currentEditingClientId);
           if (existingClient) {
-            alert(
-              "Ya existe un cliente con este DNI. Por favor verifique el número."
-            );
+            toast.error("Ya existe un cliente con este DNI", {
+              description: "Por favor verifique el número. El DNI debe ser único.",
+            });
             setLoading(false);
             return;
           }
         }
-        await clientService.update(clientToEdit.id, clientData);
+        // Si el DNI no cambió o es válido, proceder con la actualización
+        await clientService.update(currentEditingClientId, clientData);
+        // Limpiar sessionStorage después de guardar
+        try {
+          sessionStorage.removeItem("editingClient");
+        } catch (e) {
+          // Ignorar
+        }
         setShowSuccess(true);
         setTimeout(() => {
           setShowSuccess(false);
@@ -245,9 +267,9 @@ export function ClientRegistrationWithHelp({
         // Verificar si el DNI ya existe
         const existingClient = await clientService.getByDni(formData.dni);
         if (existingClient) {
-          alert(
-            "Ya existe un cliente con este DNI. Por favor verifique el número."
-          );
+          toast.error("Ya existe un cliente con este DNI", {
+            description: "Por favor verifique el número.",
+          });
           setLoading(false);
           return;
         }
@@ -267,10 +289,10 @@ export function ClientRegistrationWithHelp({
       }
     } catch (error: any) {
       console.error("Error al guardar cliente:", error);
-      alert(
-        error.message ||
-          "Error al guardar el cliente. Por favor intenta nuevamente."
-      );
+      const errorMessage = error?.message?.replace(/https?:\/\/[^\s]+/g, "").replace(/localhost[^\s]*/gi, "").trim() || "Error al guardar el cliente. Por favor intenta nuevamente.";
+      toast.error("Error al guardar cliente", {
+        description: errorMessage,
+      });
     } finally {
       setLoading(false);
     }

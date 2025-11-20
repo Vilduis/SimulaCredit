@@ -187,3 +187,34 @@
 html {
   font-size: var(--font-size);
 }
+
+/* Badges de estado para simulaciones */
+@layer components {
+  .badge-status-draft {
+    @apply bg-gray-500 text-white border-transparent;
+  }
+
+  .badge-status-pending {
+    @apply bg-yellow-500 text-white border-transparent;
+  }
+
+  .badge-status-approved {
+    @apply bg-green-500 text-white border-transparent;
+  }
+
+  .badge-status-rejected {
+    @apply bg-red-500 text-white border-transparent;
+  }
+
+  .badge-status-active {
+    @apply bg-blue-500 text-white border-transparent;
+  }
+
+  .badge-status-completed {
+    @apply bg-green-600 text-white border-transparent;
+  }
+
+  .badge-status-cancelled {
+    @apply bg-gray-600 text-white border-transparent;
+  }
+}

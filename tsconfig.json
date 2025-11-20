@@ -13,6 +13,8 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
 
     /* Linting */
     "strict": true,
@@ -30,6 +32,13 @@
     "types": ["vite/client"]
   },
   "include": ["src", "src/**/*", "src/vite-env.d.ts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/components/Navigation.tsx",
+    "src/components/DashboardAdmin.tsx",
+    "src/components/DashboardLayout.tsx"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
 
